@@ -551,25 +551,37 @@ class Innovus(HammerPlaceAndRouteTool, CadenceTool):
             self.logger.warning(
                 "The technology plugin 'special cells: stdfiller' field does not exist. It should specify a list of (non IO) filler cells. No filler will be added. You can override this with an add_fillers hook if you do not specify filler cells in the technology plugin.")
         else:
+            # FIXME: This has been removed because it occasionally causes DRC violations.
+            # Filling with these decap cells sometimes causes a decap cell to overlap a std cell. I have never seen this issue with the filler cells, 
+            # and even it it did, there would be no DRC issue. 
+            # First, I tried using the 'add_decaps' command instead. However, this would always cause Innovus to crash without error message. (Innovus version 211)
+            # I also tried the '-fix_drc' option for 'add_fillers'. That had no effect possibly because there technically is no DRC violation until the end.
+            # I tried 'set_db add_fillers_with_drc false', and 'set_db add_fillers_no_single_site_gap false', but no effect.
+            #
             # Decap cells as fillers
-            if len(decaps) > 0:
-                fill_cells = list(map(lambda c: str(c), decaps[0].name))
-                self.append("set_db add_fillers_cells \"{FILLER}\"".format(FILLER=" ".join(fill_cells)))
-                # Targeted decap constraints
-                decap_consts = list(filter(lambda x: x.target=="density", self.get_decap_constraints()))
-                for const in decap_consts:
-                    area_str = ""
-                    if all(c is not None for c in (const.x, const.y, const.width, const.height)):
-                        assert isinstance(const.x, Decimal)
-                        assert isinstance(const.y, Decimal)
-                        assert isinstance(const.width, Decimal)
-                        assert isinstance(const.height, Decimal)
-                        area_str = " ".join(("-area", str(const.x), str(const.y), str(const.x+const.width), str(const.y+const.height)))
-                    self.verbose_append("add_fillers -density {DENSITY} {AREA}".format(
-                        DENSITY=str(const.density), AREA=area_str))
-                # Or, fill everywhere if no decap constraints given
-                if len(self.get_decap_constraints()) == 0:
-                    self.verbose_append("add_fillers")
+            # if len(decaps) > 0:
+            #     fill_cells = list(map(lambda c: str(c), decaps[0].name))
+            #     self.append("set_db add_fillers_cells \"{FILLER}\"".format(FILLER=" ".join(fill_cells)))
+            #     # Targeted decap constraints
+            #     decap_consts = list(filter(lambda x: x.target=="density", self.get_decap_constraints()))
+            #     for const in decap_consts:
+            #         area_str = ""
+            #         if all(c is not None for c in (const.x, const.y, const.width, const.height)):
+            #             assert isinstance(const.x, Decimal)
+            #             assert isinstance(const.y, Decimal)
+            #             assert isinstance(const.width, Decimal)
+            #             assert isinstance(const.height, Decimal)
+            #             area_str = " ".join(("-area", str(const.x), str(const.y), str(const.x+const.width), str(const.y+const.height)))
+            #         self.verbose_append("add_fillers -density {DENSITY} {AREA}".format(
+            #             DENSITY=str(const.density), AREA=area_str))
+            #     # Or, fill everywhere if no decap constraints given
+            #     if len(self.get_decap_constraints()) == 0:
+            #         # self.verbose_append('set_db add_fillers_with_drc false')
+            #         # self.verbose_append('set_db add_fillers_no_single_site_gap false')
+            #         self.verbose_append("add_fillers")
+            #         # self.verbose_append(f"add_decaps -cells  {' '.join(list(map(lambda c: str(c), decaps[0].name)))} -total_cap 1000") 
+            #         # "-effort high -area 1 1 239 239"
+            #         # Or try 0.156 fF/um^2 ?
 
             # Then the rest is stdfillers
             fill_cells = list(map(lambda c: str(c), stdfillers[0].name))
@@ -881,6 +893,11 @@ class Innovus(HammerPlaceAndRouteTool, CadenceTool):
             output.extend(floorplan_script_contents.split("\n"))
         elif floorplan_mode == "generate":
             output.extend(self.generate_floorplan_tcl())
+        elif floorplan_mode == "generateplusmanual": # Why not both?
+            output.extend(self.generate_floorplan_tcl())
+            floorplan_script_contents = str(self.get_setting("par.innovus.floorplan_script_contents"))
+            output.append("# Floorplan manually specified from HAMMER")
+            output.extend(floorplan_script_contents.split("\n"))
         elif floorplan_mode == "auto":
             output.append("# Using auto-generated floorplan")
             output.append("plan_design")

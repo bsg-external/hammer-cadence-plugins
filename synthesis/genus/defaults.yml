@@ -8,5 +8,8 @@ synthesis.genus:
   # Used to locate the binary - e.g. the '171' in ${cadence.cadence_home}/GENUS/GENUS171/bin/genus
   version: "171"
 
+  # List of string arguments to add to the 'write_sdf' command
+  write_sdf_args: [""]
+
   # Generate the TCL file but do not run it yet.
   generate_only: false

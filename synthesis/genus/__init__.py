@@ -228,7 +228,7 @@ class Genus(HammerSynthesisTool, CadenceTool):
         ))
 
         # Load input files and check that they are all Verilog.
-        if not self.check_input_files([".v", ".sv"]):
+        if not self.check_input_files([".v", ".sv", ".vh", ".vi"]):
             return False
         # We are switching working directories and Genus still needs to find paths.
         abspath_input_files = list(map(lambda name: os.path.join(os.getcwd(), name), self.input_files))  # type: List[str]
@@ -340,7 +340,8 @@ class Genus(HammerSynthesisTool, CadenceTool):
             view_name = "my_view"
         verbose_append("write_sdc -view {view} > {file}".format(view=view_name, file=self.mapped_sdc_path))
 
-        verbose_append("write_sdf > {run_dir}/{top}.mapped.sdf".format(run_dir=self.run_dir, top=top))
+        sdf_args = ' '.join(self.get_setting('synthesis.genus.write_sdf_args')) # Concatinate extra args
+        verbose_append("write_sdf {args} > {run_dir}/{top}.mapped.sdf".format(run_dir=self.run_dir, top=top, args=sdf_args))
 
         # We just get "Cannot trace ILM directory. Data corrupted."
         # -hierarchical needs to be used for non-leaf modules

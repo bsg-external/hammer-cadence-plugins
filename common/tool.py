@@ -116,6 +116,10 @@ class CadenceTool(HasSDCSupport, HasCPFSupport, HasUPFSupport, TCLTool, HammerTo
 
         sdc_files = self.generate_sdc_files()
 
+        # Add Custom SDCs, if present.
+        try: sdc_files.extend( self.get_setting('vlsi.inputs.custom_sdc_files', nullvalue=[]) )
+        except KeyError: pass
+
         # Add the post-synthesis SDC, if present.
         post_synth_sdc = self.post_synth_sdc
         if post_synth_sdc is not None:
