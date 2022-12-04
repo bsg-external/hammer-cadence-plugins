@@ -185,7 +185,7 @@ class Conformal(HammerFormalTool, CadenceTool):
         append(f"read_library {' '.join(lib_v_files)} -sva -bboxsolver -both")
 
         # Read designs
-        valid_exts = [".v", ".v.gz", ".sv", ".sv.gz"]
+        valid_exts = [".v", ".v.gz", ".sv", ".sv.gz", ".vh", ".vh.gz", ".vi", ".vi.gz"]
         if not self.check_input_files(valid_exts) or not self.check_reference_files(valid_exts):
             return False
         golden_files = list(map(lambda name: os.path.join(os.getcwd(), name), self.reference_files))
