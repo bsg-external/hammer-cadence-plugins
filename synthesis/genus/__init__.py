@@ -329,6 +329,7 @@ class Genus(HammerSynthesisTool, CadenceTool):
         verbose_append = self.verbose_append
         top = self.top_module
 
+        verbose_append("update_names -suffix _mapped -module")
         verbose_append("write_hdl > {}".format(self.mapped_v_path))
         verbose_append("write_script > {}.mapped.scr".format(top))
         corners = self.get_mmmc_corners()
