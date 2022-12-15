@@ -163,9 +163,28 @@ class Conformal(HammerFormalTool, CadenceTool):
         ]
         return self.make_steps_from_methods(steps)
 
+    
+    def write_hdl_cmd_file(self, fname:str) -> bool:
+        """
+        Write an Verilog (or VHDL) command file list. 
+        For a Verilog command file, supported options are: '-v', '-y', '+incdir', '+libext', and '+define'.
+        """
+        try: 
+            cmd_list = self.get_setting('formal.imputs.hdl_cmd_list')
+        except:
+            self.logger.info(f'Variable "formal.imputs.hdl_cmd_list" not set.')
+            return True
+        with open(fname, 'w') as fout:
+            # for cmd in cmd_list: fout.write(cmd)
+            fout.write('\n'.join(cmd_list))
+        return True
+    
     def setup_designs(self) -> bool:
         """ Setup the designs """
         append = self.append
+
+        hdl_cmd_fname =  os.path.join(self.run_dir, 'hdl_cmd.f')
+        self.write_hdl_cmd_file(hdl_cmd_fname)
 
         # Exit on dofile error
         append("set_dofile_abort exit")
@@ -182,16 +201,16 @@ class Conformal(HammerFormalTool, CadenceTool):
         lib_v_files.extend(self.technology.read_libs(
                 [hammer_tech.filters.verilog_sim_filter],
                 hammer_tech.HammerTechnologyUtils.to_plain_item))
-        append(f"read_library {' '.join(lib_v_files)} -sva -bboxsolver -both")
+        append(f"read_library {' '.join(lib_v_files)} -sva -bboxsolver -f {hdl_cmd_fname} -both")
 
         # Read designs
         valid_exts = [".v", ".v.gz", ".sv", ".sv.gz", ".vh", ".vh.gz", ".vi", ".vi.gz"]
         if not self.check_input_files(valid_exts) or not self.check_reference_files(valid_exts):
             return False
         golden_files = list(map(lambda name: os.path.join(os.getcwd(), name), self.reference_files))
-        append(f"read_design {' '.join(golden_files)} -sva -golden")
+        append(f"read_design {' '.join(golden_files)} -sv09 -sva -f {hdl_cmd_fname} -golden")
         revised_files = list(map(lambda name: os.path.join(os.getcwd(), name), self.input_files))
-        append(f"read_design {' '.join(revised_files)} -sva -revised")
+        append(f"read_design {' '.join(revised_files)} -sv09 -sva -revised")
 
         # Set top module
         append(f"set_root_module {self.top_module} -both")
