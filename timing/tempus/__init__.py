@@ -211,8 +211,9 @@ class Tempus(HammerTimingTool, CadenceTool):
         # report_timing
         verbose_append("set_db timing_report_timing_header_detail_info extended")
         # Note this reports everything - setup, hold, recovery, etc.
-        verbose_append(f"report_timing -retime path_slew_propagation -max_paths {self.max_paths} > timing.rpt")
-        verbose_append(f"report_timing -unconstrained -debug unconstrained -max_paths {self.max_paths} > unconstrained.rpt")
+        verbose_append(f"report_timing -retime path_slew_propagation -max_paths {self.max_paths} > {self.top_module}_timing_setup.rpt")
+        verbose_append(f"report_timing -check_type hold -retime path_slew_propagation -max_paths {self.max_paths} > {self.top_module}_timing_hold.rpt")
+        verbose_append(f"report_timing -unconstrained -debug unconstrained -max_paths {self.max_paths} > {self.top_module}_timing_unconstrained.rpt")
 
         if self.get_setting("timing.tempus.si_glitch"):
             # SI max/min delay
