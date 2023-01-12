@@ -120,10 +120,10 @@ class CadenceTool(HasSDCSupport, HasCPFSupport, HasUPFSupport, TCLTool, HammerTo
         try: sdc_files.extend( self.get_setting('vlsi.inputs.custom_sdc_files', nullvalue=[]) )
         except KeyError: pass
 
-        # Add the post-synthesis SDC, if present.
+        # If the post_synth_sdc script is present, use it instead of the input SDC files.
         post_synth_sdc = self.post_synth_sdc
         if post_synth_sdc is not None:
-            sdc_files.append(post_synth_sdc)
+            sdc_files = [ post_synth_sdc ]
 
         # TODO: add floorplanning SDC
         if len(sdc_files) > 0:
