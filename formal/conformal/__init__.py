@@ -173,9 +173,8 @@ class Conformal(HammerFormalTool, CadenceTool):
             cmd_list = self.get_setting('formal.imputs.hdl_cmd_list')
         except:
             self.logger.info(f'Variable "formal.imputs.hdl_cmd_list" not set.')
-            return True
+            cmd_list = ['# (No commands set)'];
         with open(fname, 'w') as fout:
-            # for cmd in cmd_list: fout.write(cmd)
             fout.write('\n'.join(cmd_list))
         return True
     
@@ -193,15 +192,22 @@ class Conformal(HammerFormalTool, CadenceTool):
         max_threads = min(self.get_setting("vlsi.core.max_threads"), 16)
         append(f"set_parallel_option -threads 1,{max_threads}")
 
-        # Read libraries (macros, stdcells)
-        # TODO: support VHDL + Liberty. For now, -sva = SystemVerilog w/ assertion support.
+        # Read Lib files
+        liberty_lib_files = self.technology.read_libs(
+                [hammer_tech.filters.liberty_lib_filter],
+                hammer_tech.HammerTechnologyUtils.to_plain_item)
+        append(f"read_library -liberty {' '.join(liberty_lib_files)} -both")
+
+        # Read HDL libraries 
+        # TODO: support VHDL
         lib_v_files = self.technology.read_libs(
                 [hammer_tech.filters.verilog_synth_filter],
                 hammer_tech.HammerTechnologyUtils.to_plain_item)
         lib_v_files.extend(self.technology.read_libs(
                 [hammer_tech.filters.verilog_sim_filter],
                 hammer_tech.HammerTechnologyUtils.to_plain_item))
-        append(f"read_library {' '.join(lib_v_files)} -sva -bboxsolver -f {hdl_cmd_fname} -both")
+        for lib in lib_v_files:
+            append(f"read_library {lib} -sv09 -sva -bboxsolver -f {hdl_cmd_fname} -both")
 
         # Read designs
         valid_exts = [".v", ".v.gz", ".sv", ".sv.gz", ".vh", ".vh.gz", ".vi", ".vi.gz"]
@@ -217,7 +223,11 @@ class Conformal(HammerFormalTool, CadenceTool):
 
         # Auto setup analysis optimizations
         if self.get_setting("formal.conformal.license") != "L":
-            append("set_analyze_option -auto")
+            map_path = self.get_setting("formal.conformal.synth_mapped_points_path")
+            if not (map_path == ""):
+                append(f"set_analyze_option -mapping_file {map_path}") # Use map file
+            else:
+                append("set_analyze_option -auto") # Automatic settings
 
         # Setup reports
         append("report_design_data")
