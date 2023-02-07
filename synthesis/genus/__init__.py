@@ -401,6 +401,8 @@ def genus_global_settings(ht: HammerTool) -> bool:
     verbose_append("set_db max_cpus_per_server {}".format(ht.get_setting("vlsi.core.max_threads")))
     # BSG Scott - Infer synchronous resets (helps avoid x-pessimisim issues)
     verbose_append("set_db hdl_auto_sync_set_reset true")
+    # BSG Derek - Don't set undriven outputs to 0 (needed for Formal Verification)
+    verbose_append("set_db hdl_unconnected_value none")
 
     return True
 

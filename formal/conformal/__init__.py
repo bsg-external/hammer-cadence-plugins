@@ -162,28 +162,10 @@ class Conformal(HammerFormalTool, CadenceTool):
             self.compare_designs
         ]
         return self.make_steps_from_methods(steps)
-
-    
-    def write_hdl_cmd_file(self, fname:str) -> bool:
-        """
-        Write an Verilog (or VHDL) command file list. 
-        For a Verilog command file, supported options are: '-v', '-y', '+incdir', '+libext', and '+define'.
-        """
-        try: 
-            cmd_list = self.get_setting('formal.imputs.hdl_cmd_list')
-        except:
-            self.logger.info(f'Variable "formal.imputs.hdl_cmd_list" not set.')
-            cmd_list = ['# (No commands set)'];
-        with open(fname, 'w') as fout:
-            fout.write('\n'.join(cmd_list))
-        return True
     
     def setup_designs(self) -> bool:
         """ Setup the designs """
         append = self.append
-
-        hdl_cmd_fname =  os.path.join(self.run_dir, 'hdl_cmd.f')
-        self.write_hdl_cmd_file(hdl_cmd_fname)
 
         # Exit on dofile error
         append("set_dofile_abort exit")
@@ -191,6 +173,9 @@ class Conformal(HammerFormalTool, CadenceTool):
         # Multithreading (max 16 allowed by tool)
         max_threads = min(self.get_setting("vlsi.core.max_threads"), 16)
         append(f"set_parallel_option -threads 1,{max_threads}")
+
+        # Setting recommended by Genus
+        # append('set_undefined_cell black_box -noascend -both')
 
         # Read Lib files
         liberty_lib_files = self.technology.read_libs(
@@ -203,18 +188,22 @@ class Conformal(HammerFormalTool, CadenceTool):
         lib_v_files = self.technology.read_libs(
                 [hammer_tech.filters.verilog_synth_filter],
                 hammer_tech.HammerTechnologyUtils.to_plain_item)
-        lib_v_files.extend(self.technology.read_libs(
-                [hammer_tech.filters.verilog_sim_filter],
-                hammer_tech.HammerTechnologyUtils.to_plain_item))
-        for lib in lib_v_files:
-            append(f"read_library {lib} -sv09 -sva -bboxsolver -f {hdl_cmd_fname} -both")
+        # lib_v_files.extend(self.technology.read_libs(
+        #         [hammer_tech.filters.verilog_sim_filter],
+        #         hammer_tech.HammerTechnologyUtils.to_plain_item))
+
+        # Add search paths
+        self.logger.warning(f'search paths: {self.get_setting("formal.inputs.hdl_search_paths")}')
+        for p in self.get_setting("formal.inputs.hdl_search_paths"):
+            append(f'add_search_path {p} -design -golden')
 
         # Read designs
         valid_exts = [".v", ".v.gz", ".sv", ".sv.gz", ".vh", ".vh.gz", ".vi", ".vi.gz"]
         if not self.check_input_files(valid_exts) or not self.check_reference_files(valid_exts):
             return False
         golden_files = list(map(lambda name: os.path.join(os.getcwd(), name), self.reference_files))
-        append(f"read_design {' '.join(golden_files)} -sv09 -sva -f {hdl_cmd_fname} -golden")
+        golden_files.extend(lib_v_files) # TODO test
+        append(f"read_design {' '.join(golden_files)} -sv09 -sva -golden")
         revised_files = list(map(lambda name: os.path.join(os.getcwd(), name), self.input_files))
         append(f"read_design {' '.join(revised_files)} -sv09 -sva -revised")
 
@@ -223,11 +212,7 @@ class Conformal(HammerFormalTool, CadenceTool):
 
         # Auto setup analysis optimizations
         if self.get_setting("formal.conformal.license") != "L":
-            map_path = self.get_setting("formal.conformal.synth_mapped_points_path")
-            if not (map_path == ""):
-                append(f"set_analyze_option -mapping_file {map_path}") # Use map file
-            else:
-                append("set_analyze_option -auto") # Automatic settings
+            append("set_analyze_option -auto") # Automatic settings
 
         # Setup reports
         append("report_design_data")
@@ -238,17 +223,28 @@ class Conformal(HammerFormalTool, CadenceTool):
         """ Depending on license, performs flat or hierarchical comparison """
         append = self.append
 
+        # Some settings recommend by Genus
+        append('set_flatten_model -seq_constant')
+        append('set_flatten_model -seq_constant_x_to 0')
+        append('set_flatten_model -nodff_to_dlat_zero')
+        append('set_flatten_model -nodff_to_dlat_feedback')
+        append('set_flatten_model -hier_seq_merge')
+        append('set_flatten_model -balanced_modeling')
+
+        append('set_analyze_option -auto -report_map')
+
         if self.get_setting("formal.conformal.license") == "L":
             append("report_black_box")
             append("set_system_mode lec")
-            append("add_compare_point -all")
+            append("add_compared_points -all")
             append("compare")
             append("report_compare_data")
         else:
             # TODO: need resource file for DC-mapped netlists
-            append('write_hier_compare_dofile hier_compare.tcl -replace '\
-                   '-prepend_string "analyze_datapath -module; analyze_datapath"')
-            append("run_hier_compare hier_compare.tcl")
+            append('write_hier_compare_dofile hier_compare.tcl -verbose -noexact_pin_match -constraint -usage '\
+                   '-replace -balanced_extraction -input_output_pin_equivalence '\
+                   '-prepend_string "report_design_data; report_unmapped_points -summary; report_unmapped_points -notmapped; analyze_datapath -module -verbose; eval analyze_datapath -verbose"')
+            append("run_hier_compare hier_compare.tcl -dynamic_hierarchy")
             append("set_system_mode lec")
 
         append("report_statistics")
