@@ -145,6 +145,8 @@ class Tempus(HammerTimingTool, CadenceTool):
             for l in self.generate_power_spec_commands():
                 verbose_append(l)
 
+        verbose_append("init_design")
+
         # Read parasitics
         if self.spefs is not None: # post-P&R
             corners = self.get_mmmc_corners()
@@ -173,7 +175,7 @@ class Tempus(HammerTimingTool, CadenceTool):
         if self.sdf_file is not None:
             verbose_append("read_sdf " + os.path.join(os.getcwd(), self.sdf_file))
 
-        verbose_append("init_design")
+
 
         # TODO: Optionally read additional DEF or OA physical data
 
@@ -290,6 +292,9 @@ def tempus_global_settings(ht: HammerTool) -> bool:
     verbose_append = ht.verbose_append
 
     # Generic settings
+    if ht.get_setting("vlsi.core.technology") == "sky130":
+        verbose_append("set_message -id IMPMSMV-3001 -suppress")    # No such power domain '%s'... sky130 lib issue
+        verbose_append("set_message -id TECHLIB-702  -suppress")    # No pg_pin with name '%s' has been read... sky130 lib issue
     verbose_append("set_db design_process_node {}".format(ht.get_setting("vlsi.core.node")))
     verbose_append("set_multi_cpu_usage -local_cpu {}".format(ht.get_setting("vlsi.core.max_threads")))
 
