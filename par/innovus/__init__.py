@@ -717,6 +717,7 @@ class Innovus(HammerPlaceAndRouteTool, CadenceTool):
     def write_spefs(self) -> bool:
         # Output a SPEF file that contains the parasitic extraction results
         self.verbose_append("set_db extract_rc_coupled true")
+        # self.verbose_append("set_extract_shrink_factor 0.85") # TODO: Use this setting to artificially improve Signoff STA?
         self.verbose_append("extract_rc")
         corners = self.get_mmmc_corners()
         if corners:
@@ -1173,6 +1174,8 @@ def innovus_global_settings(ht: HammerTool) -> bool:
     # Generic settings
     verbose_append("set_db design_process_node {}".format(ht.get_setting("vlsi.core.node")))
     verbose_append("set_multi_cpu_usage -local_cpu {}".format(ht.get_setting("vlsi.core.max_threads")))
+
+    # verbose_append("set_db extract_rc_effort_level high") # Required to be 'low' without qrc files
 
     return True
 

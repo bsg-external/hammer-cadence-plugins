@@ -175,10 +175,7 @@ class Tempus(HammerTimingTool, CadenceTool):
         if self.sdf_file is not None:
             verbose_append("read_sdf " + os.path.join(os.getcwd(), self.sdf_file))
 
-
-
         # TODO: Optionally read additional DEF or OA physical data
-
 
         # Set some default analysis settings for max accuracy
         # Clock path pessimism removal
