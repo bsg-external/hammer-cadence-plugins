@@ -170,32 +170,14 @@ class CadenceTool(HasSDCSupport, HasCPFSupport, HasUPFSupport, TCLTool, HammerTo
                     name=corner_name
                 ))
                 # Next, create Innovus rc corners from qrc tech files
-                # ORIGINAL ####################
-                # append_mmmc("create_rc_corner -name {name}_rc -temperature {tempInCelsius} {qrc}".format(
-                #     name=corner_name,
-                #     tempInCelsius=str(corner.temp.value),
-                #     qrc="-qrc_tech {}".format(self.get_mmmc_qrc(corner)) if self.get_mmmc_qrc(corner) != '' else ''
-                # ))
-
-                # WITH CAP FILE ####################
-                append_mmmc("create_rc_corner -name {name}_rc -temperature {tempInCelsius} {qrc} -cap_table {ctable}".format(
+                try: captbl_arg = f'-cap_table {self.get_setting("par.inputs.cap_table_file")}'
+                except KeyError: captbl_arg = ''
+                append_mmmc("create_rc_corner -name {name}_rc -temperature {tempInCelsius} {qrc} {ctable}".format(
                     name=corner_name,
                     tempInCelsius=str(corner.temp.value),
                     qrc="-qrc_tech {}".format(self.get_mmmc_qrc(corner)) if self.get_mmmc_qrc(corner) != '' else '',
-                    ctable=f'{self.get_setting("vlsi.core.local_tool_path")}/hammer/src/hammer-vlsi/technology/sky130/extra/sky130.captbl' # TODO: move path to sky130 hammer config
+                    ctable = captbl_arg
                 ))
-
-                # WITH RC FACTORS ####################
-                # append_mmmc("create_rc_corner -name {name}_rc -temperature {tempInCelsius} {qrc} {cap_factor} {res_factor} {xcap_factor} {clock_cap_factor} {clock_res_factor}".format(
-                #     name=corner_name,
-                #     tempInCelsius=str(corner.temp.value),
-                #     qrc="-qrc_tech {}".format(self.get_mmmc_qrc(corner)) if self.get_mmmc_qrc(corner) != '' else '',
-                #     cap_factor       = "-post_route_cap {3.0 1.0 1.0}" if rc_derate else '',
-                #     res_factor       = "-post_route_res {3.0 1.0 1.0}" if rc_derate else '',
-                #     xcap_factor      = "-post_route_cross_cap {3.0 1.0 1.0}" if rc_derate else '',
-                #     clock_cap_factor = "-post_route_clock_cap {3.0 1.0 1.0}" if rc_derate else '',
-                #     clock_res_factor = "-post_route_clock_res {3.0 1.0 1.0}" if rc_derate else ''
-                # ))
                 # Next, create an Innovus delay corner.
                 append_mmmc(
                     "create_delay_corner -name {name}_delay -timing_condition {name}_cond -rc_corner {name}_rc".format(
