@@ -224,7 +224,7 @@ class Tempus(HammerTimingTool, CadenceTool):
             verbose_append("report_noise -delay max -out_file max_si_delay")
             verbose_append("report_noise -delay min -out_file min_si_delay")
             # Glitch and summary histogram
-            verbose_append("report_noise -out_file glitch")
+            verbose_append("report_noise -out_file glitch -threshold 0.05")
             verbose_append("report_noise -histogram")
 
         return True
