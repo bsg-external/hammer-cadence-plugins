@@ -185,7 +185,12 @@ class Tempus(HammerTimingTool, CadenceTool):
         # Partial path-based analysis even in graph-based analysis mode
         verbose_append("set_db timing_analysis_graph_pba_mode true")
         # Equivalent waveform model w/ waveform propagation
-        verbose_append("set_db delaycal_equivalent_waveform_model propagation")
+        #verbose_append("set_db delaycal_equivalent_waveform_model propagation")
+            # BSG-STD: disabled to match the delaycal of innovus. in order to
+            # use waveform propagation in our delay calculations, we would also
+            # need to enable this in innovus which might cause QoR issues and
+            # will likely increase runtime therefore currently we just use a
+            # simpler transition model in signoff..
 
         # Enable signal integrity delay and glitch analysis
         if self.get_setting("timing.tempus.si_glitch"):
