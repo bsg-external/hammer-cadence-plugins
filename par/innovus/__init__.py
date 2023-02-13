@@ -268,6 +268,10 @@ class Innovus(HammerPlaceAndRouteTool, CadenceTool):
         # Make sure netlist is uniquified before implementation
         verbose_append("set_db init_design_uniquify true")
 
+        # Adding option to save and report SI numbersfor debug
+        verbose_append("set_db si_delay_separate_on_data true")
+        verbose_append("set_db si_delay_enable_report true")
+
         # Read LEF layouts.
         lef_files = self.technology.read_libs([
             hammer_tech.filters.lef_filter
