@@ -39,6 +39,7 @@ class Innovus(HammerPlaceAndRouteTool, CadenceTool):
         outputs["par.outputs.seq_cells"] = self.output_seq_cells
         outputs["par.outputs.all_regs"] = self.output_all_regs
         outputs["par.outputs.sdf_file"] = self.output_sdf_path
+        outputs["par.outputs.sdc_file"] = self.output_sdc_path
         outputs["par.outputs.spefs"] = self.output_spef_paths
         return outputs
 
@@ -89,6 +90,7 @@ class Innovus(HammerPlaceAndRouteTool, CadenceTool):
         self.output_sim_netlist = self.output_sim_netlist_filename
         self.hcells_list = []
         self.sdf_file = self.output_sdf_path
+        self.sdc_file = self.output_sdc_path
         self.spef_files = self.output_spef_paths
 
         if self.ran_write_design:
@@ -103,6 +105,9 @@ class Innovus(HammerPlaceAndRouteTool, CadenceTool):
 
             if not os.path.isfile(self.output_sdf_path):
                 raise ValueError("Output SDF %s not found" % (self.output_sdf_path))
+
+            if not os.path.isfile(self.output_sdc_path):
+                raise ValueError("Output SDC %s not found" % (self.output_sdc_path))
 
             for spef_path in self.output_spef_paths:
                 if not os.path.isfile(spef_path):
@@ -135,6 +140,10 @@ class Innovus(HammerPlaceAndRouteTool, CadenceTool):
     @property
     def output_sdf_path(self) -> str:
         return os.path.join(self.run_dir, "{top}.par.sdf".format(top=self.top_module))
+
+    @property
+    def output_sdc_path(self) -> str:
+        return os.path.join(self.run_dir, "{top}.par.sdc".format(top=self.top_module))
 
     @property
     def output_spef_paths(self) -> List[str]:
@@ -714,6 +723,12 @@ class Innovus(HammerPlaceAndRouteTool, CadenceTool):
 
         return True
 
+    def write_sdc(self) -> bool:
+        if self.hierarchical_mode.is_nonleaf_hierarchical():
+            self.verbose_append("flatten_ilm")
+        self.verbose_append("write_sdc {run_dir}/{top}.par.sdc".format(run_dir=self.run_dir, top=self.top_module))
+        return True
+
     def write_spefs(self) -> bool:
         # Output a SPEF file that contains the parasitic extraction results
         self.verbose_append("set_db extract_rc_coupled true")
@@ -782,6 +797,9 @@ class Innovus(HammerPlaceAndRouteTool, CadenceTool):
 
         # Write SDF
         self.write_sdf()
+
+        # Write SDC
+        self.write_sdc()
 
         # Write SPEF
         self.write_spefs()
