@@ -13,4 +13,4 @@ timing.tempus:
   # Enable signal integrity delay and glitch analysis
   # Note: your tech libs should have noise models!
   # type: bool
-  si_glitch: false
+  si_glitch: true

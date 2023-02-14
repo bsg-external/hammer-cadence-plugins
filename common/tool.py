@@ -170,10 +170,13 @@ class CadenceTool(HasSDCSupport, HasCPFSupport, HasUPFSupport, TCLTool, HammerTo
                     name=corner_name
                 ))
                 # Next, create Innovus rc corners from qrc tech files
-                append_mmmc("create_rc_corner -name {name}_rc -temperature {tempInCelsius} {qrc}".format(
+                try: captbl_arg = f'-cap_table {self.get_setting("par.inputs.cap_table_file")}'
+                except KeyError: captbl_arg = ''
+                append_mmmc("create_rc_corner -name {name}_rc -temperature {tempInCelsius} {qrc} {ctable}".format(
                     name=corner_name,
                     tempInCelsius=str(corner.temp.value),
-                    qrc="-qrc_tech {}".format(self.get_mmmc_qrc(corner)) if self.get_mmmc_qrc(corner) != '' else ''
+                    qrc="-qrc_tech {}".format(self.get_mmmc_qrc(corner)) if self.get_mmmc_qrc(corner) != '' else '',
+                    ctable = captbl_arg
                 ))
                 # Next, create an Innovus delay corner.
                 append_mmmc(

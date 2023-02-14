@@ -145,6 +145,8 @@ class Tempus(HammerTimingTool, CadenceTool):
             for l in self.generate_power_spec_commands():
                 verbose_append(l)
 
+        verbose_append("init_design")
+
         # Read parasitics
         if self.spefs is not None: # post-P&R
             corners = self.get_mmmc_corners()
@@ -173,10 +175,7 @@ class Tempus(HammerTimingTool, CadenceTool):
         if self.sdf_file is not None:
             verbose_append("read_sdf " + os.path.join(os.getcwd(), self.sdf_file))
 
-        verbose_append("init_design")
-
         # TODO: Optionally read additional DEF or OA physical data
-
 
         # Set some default analysis settings for max accuracy
         # Clock path pessimism removal
@@ -186,7 +185,12 @@ class Tempus(HammerTimingTool, CadenceTool):
         # Partial path-based analysis even in graph-based analysis mode
         verbose_append("set_db timing_analysis_graph_pba_mode true")
         # Equivalent waveform model w/ waveform propagation
-        verbose_append("set_db delaycal_equivalent_waveform_model propagation")
+        #verbose_append("set_db delaycal_equivalent_waveform_model propagation")
+            # BSG-STD: disabled to match the delaycal of innovus. in order to
+            # use waveform propagation in our delay calculations, we would also
+            # need to enable this in innovus which might cause QoR issues and
+            # will likely increase runtime therefore currently we just use a
+            # simpler transition model in signoff..
 
         # Enable signal integrity delay and glitch analysis
         if self.get_setting("timing.tempus.si_glitch"):
@@ -220,7 +224,7 @@ class Tempus(HammerTimingTool, CadenceTool):
             verbose_append("report_noise -delay max -out_file max_si_delay")
             verbose_append("report_noise -delay min -out_file min_si_delay")
             # Glitch and summary histogram
-            verbose_append("report_noise -out_file glitch")
+            verbose_append("report_noise -out_file glitch -threshold 0.05")
             verbose_append("report_noise -histogram")
 
         return True
@@ -290,6 +294,9 @@ def tempus_global_settings(ht: HammerTool) -> bool:
     verbose_append = ht.verbose_append
 
     # Generic settings
+    if ht.get_setting("vlsi.core.technology") == "sky130":
+        verbose_append("set_message -id IMPMSMV-3001 -suppress")    # No such power domain '%s'... sky130 lib issue
+        verbose_append("set_message -id TECHLIB-702  -suppress")    # No pg_pin with name '%s' has been read... sky130 lib issue
     verbose_append("set_db design_process_node {}".format(ht.get_setting("vlsi.core.node")))
     verbose_append("set_multi_cpu_usage -local_cpu {}".format(ht.get_setting("vlsi.core.max_threads")))
 
